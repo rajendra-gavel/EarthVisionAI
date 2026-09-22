@@ -1,0 +1,558 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, sans-serif;
+  background: #f5f7fa;
+  color: #172033;
+}
+
+.app {
+  min-height: 100vh;
+}
+
+.header {
+  height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  background: white;
+  border-bottom: 1px solid #e5e8ee;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: #172033;
+  color: white;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.brand p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #697386;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #526070;
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #20a464;
+}
+
+.container {
+  max-width: 1400px;
+  margin: auto;
+  padding: 40px;
+}
+
+.hero {
+  margin-bottom: 30px;
+}
+
+.hero h2 {
+  margin: 0;
+  font-size: 32px;
+}
+
+.hero p {
+  margin-top: 8px;
+  color: #687385;
+}
+
+.comparison {
+  display: grid;
+  grid-template-columns: 1fr 50px 1fr;
+  align-items: center;
+  gap: 18px;
+}
+
+.image-card {
+  overflow: hidden;
+  background: white;
+  border: 1px solid #e1e5eb;
+  border-radius: 14px;
+  box-shadow: 0 4px 18px rgba(20, 30, 50, 0.05);
+}
+
+.image-header {
+  padding: 18px 20px;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #697386;
+}
+
+.image-header h3 {
+  margin: 5px 0 0;
+  font-size: 17px;
+}
+
+.image-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+.arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a94a6;
+}
+
+.action-area {
+  display: flex;
+  justify-content: center;
+  margin: 30px 0;
+}
+
+.analyze-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 26px;
+  border: none;
+  border-radius: 10px;
+  background: #172033;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.analyze-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.results,
+.assistant {
+  margin-top: 30px;
+  padding: 26px;
+  background: white;
+  border: 1px solid #e1e5eb;
+  border-radius: 14px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-title h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.metric {
+  padding: 20px;
+  background: #f7f8fa;
+  border-radius: 10px;
+}
+
+.metric span {
+  display: block;
+  font-size: 12px;
+  color: #707b8d;
+}
+
+.metric strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 20px;
+}
+
+.baseline-warning {
+  margin-top: 20px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  background: #f5f6f8;
+}
+
+.baseline-warning p {
+  margin: 7px 0 0;
+  color: #697386;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.assistant p {
+  color: #697386;
+}
+
+.assistant-input {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.assistant-input input {
+  flex: 1;
+  padding: 13px 15px;
+  border: 1px solid #dce1e8;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.assistant-input button {
+  padding: 0 22px;
+  border: none;
+  border-radius: 8px;
+  background: #172033;
+  color: white;
+  font-weight: 600;
+}
+
+.error {
+  padding: 15px;
+  background: #fff1f1;
+  border: 1px solid #f1caca;
+  border-radius: 8px;
+  color: #b42318;
+}
+
+@media (max-width: 900px) {
+  .container {
+    padding: 20px;
+  }
+
+  .comparison {
+    grid-template-columns: 1fr;
+  }
+
+  .arrow {
+    transform: rotate(90deg);
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.change-map-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e5e8ee;
+}
+
+.change-map-header h3 {
+  margin: 5px 0 0;
+  font-size: 17px;
+}
+
+.change-map-container {
+  margin-top: 16px;
+  overflow: hidden;
+  border: 1px solid #e1e5eb;
+  border-radius: 10px;
+  background: #111;
+}
+
+.change-map-container img {
+  display: block;
+  width: 100%;
+  max-height: 600px;
+  object-fit: contain;
+}
+
+.change-map-description {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: #697386;
+}
+/* =========================================
+   EarthVision AI - Object Detection
+   ========================================= */
+
+.analysis-section {
+  margin-top: 30px;
+}
+
+.section-heading {
+  margin-bottom: 20px;
+}
+
+.section-heading h2 {
+  margin: 6px 0 5px;
+  font-size: 22px;
+}
+
+.section-heading p {
+  margin: 0;
+  color: #697386;
+  font-size: 14px;
+}
+
+.object-section {
+  margin-top: 40px;
+}
+
+.object-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.detection-placeholder {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 30px;
+  background: #f7f8fa;
+  color: #697386;
+  text-align: center;
+}
+
+.detection-placeholder svg {
+  color: #8a94a6;
+}
+
+.object-results {
+  margin-top: 20px;
+  padding: 26px;
+  background: white;
+  border: 1px solid #e1e5eb;
+  border-radius: 14px;
+}
+
+.detection-list {
+  margin-top: 24px;
+  border-top: 1px solid #e5e8ee;
+  padding-top: 20px;
+}
+
+.detection-list h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.detection-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  margin-top: 8px;
+  background: #f7f8fa;
+  border-radius: 9px;
+}
+
+.detection-item div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detection-item span {
+  font-size: 12px;
+  color: #697386;
+}
+
+.detection-item > strong {
+  font-size: 16px;
+}
+
+.object-results .metric strong {
+  font-size: 16px;
+}
+
+/* Responsive */
+
+@media (max-width: 900px) {
+
+  .object-comparison {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+.assistant-answer {
+  margin-top: 18px;
+  padding: 18px;
+  background: #f7f8fa;
+  border: 1px solid #e1e5eb;
+  border-radius: 10px;
+}
+
+.assistant-answer-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #172033;
+}
+
+.assistant-answer p {
+  margin: 10px 0 0;
+  color: #3f4a5a;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.upload-panel {
+  margin-top: 20px;
+  padding: 18px;
+  background: white;
+  border: 1px solid #e1e5eb;
+  border-radius: 12px;
+}
+
+.upload-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.upload-label {
+  min-width: 130px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #526070;
+}
+
+.upload-controls input[type="file"] {
+  flex: 1;
+  font-size: 13px;
+}
+
+.upload-controls select {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #dce1e8;
+  border-radius: 8px;
+  background: white;
+  font-size: 13px;
+  color: #172033;
+}
+
+.selected-file {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: #f7f8fa;
+  border-radius: 8px;
+  color: #697386;
+  font-size: 12px;
+}
+
+.object-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.detection-placeholder {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #7a8494;
+  padding: 30px;
+  text-align: center;
+  background: #f7f8fa;
+}
+
+@media (max-width: 900px) {
+
+  .object-comparison {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-controls {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .upload-label {
+    min-width: auto;
+  }
+
+}
+.model-info {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: #f7f8fa;
+  border: 1px solid #e3e7ec;
+  border-radius: 10px;
+}
+
+.model-info-header {
+  font-size: 13px;
+  color: #172033;
+  margin-bottom: 6px;
+}
+
+.model-description {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: #697386;
+}
+
+.class-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.class-tag {
+  padding: 5px 9px;
+  border-radius: 14px;
+  background: white;
+  border: 1px solid #dce1e8;
+  color: #526070;
+  font-size: 11px;
+}
+
+.model-note {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #e1e5eb;
+  font-size: 11px;
+  color: #856404;
+}

@@ -1,0 +1,37 @@
+# Python virtual environment
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Environment/secrets
+.env
+.env.*
+!.env.example
+
+# Generated results
+results/
+runs/
+
+# Local data
+data/
+
+# Model files - uncomment if NOT using Git LFS
+# *.pt
+
+# OS
+.DS_Store
+Thumbs.db

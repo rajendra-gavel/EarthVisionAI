@@ -1,0 +1,508 @@
+import json
+
+import requests
+
+
+class AssistantService:
+
+    def __init__(self):
+        self.ollama_url = "http://localhost:11434/api/chat"
+        self.model = "qwen3:4b"
+    def answer(
+        self,
+        question: str,
+        change_result=None,
+        object_result=None,
+    ):
+
+        question_lower = question.lower().strip()
+
+        # =====================================================
+        # 1. SPECIFIC COLOR + OBJECT QUESTIONS
+        # =====================================================
+        #
+        # Examples:
+        #   "What is the blue object?"
+        #   "Which object is red?"
+        #   "What is the green vehicle?"
+        #
+        # MUST run BEFORE generic object questions because
+        # these questions also contain the word "object".
+        # =====================================================
+
+        if self._is_color_object_question(question):
+
+            color_object_answer = (
+                self._answer_color_object_question(
+                    question,
+                    object_result,
+                )
+            )
+
+            if color_object_answer:
+                return color_object_answer
+
+
+        # =====================================================
+        # 2. COLOR / IMAGE QUESTIONS
+        # =====================================================
+
+        if self._is_color_question(question):
+
+            color_answer = (
+                self._answer_color_question(
+                    object_result
+                )
+            )
+
+            if color_answer:
+                return color_answer
+
+
+        # =====================================================
+        # 3. OBJECT DETECTION QUESTIONS
+        # =====================================================
+
+        if object_result and (
+            "object" in question_lower
+            or "feature" in question_lower
+            or "detect" in question_lower
+            or "detected" in question_lower
+            or "roundabout" in question_lower
+            or "roundabouts" in question_lower
+        ):
+
+            counts = object_result.get(
+                "counts",
+                {},
+            )
+
+            if counts:
+
+                parts = [
+                    f"{count} {name}{'' if count == 1 else 's'}"
+                    for name, count in counts.items()
+                ]
+
+                return {
+                    "answer": (
+                        "EarthVision detected "
+                        + ", ".join(parts)
+                        + "."
+                    ),
+                    "model": self.model,
+                    "source": "earthvision_object_detection",
+                }
+
+
+        # =====================================================
+        # 4. CHANGE DETECTION QUESTIONS
+        # =====================================================
+
+        if change_result and (
+            "change" in question_lower
+            or "changed" in question_lower
+        ):
+
+            percentage = change_result.get(
+                "change_percentage"
+            )
+
+            if percentage is not None:
+
+                return {
+                    "answer": (
+                        f"The current pixel-difference "
+                        f"baseline flagged {percentage}% "
+                        f"of pixels as changed. "
+                        f"This does not represent confirmed "
+                        f"geographic change."
+                    ),
+                    "model": self.model,
+                    "source": "earthvision_change_detection",
+                }
+
+
+    # =====================================================
+    # 5. QWEN3 EXPLANATION
+    # =====================================================
+
+        context = {
+            "change_detection": change_result,
+            "object_detection": object_result,
+        }
+
+        context_json = json.dumps(
+            context,
+            indent=2,
+            default=str,
+        )
+
+        system_prompt = """
+You are EarthVision AI Assistant.
+
+You explain results produced by EarthVision's
+computer-vision and satellite-image analysis pipeline.
+
+Use the supplied EarthVision analysis data as the
+source of truth.
+
+Do not invent objects, measurements, colors,
+locations, or changes that are not present in
+the supplied analysis.
+
+Keep responses concise and useful.
+
+If the supplied analysis does not contain enough
+information to answer a question, clearly say that
+the information is not available.
+"""
+
+        user_prompt = f"""
+EarthVision analysis context:
+
+{context_json}
+
+User question:
+
+{question}
+"""
+
+        payload = {
+            "model": self.model,
+
+            "messages": [
+                {
+                    "role": "system",
+                    "content": system_prompt,
+                },
+                {
+                    "role": "user",
+                    "content": user_prompt,
+                },
+            ],
+
+            "stream": False,
+
+            "think": False,
+
+            "options": {
+                "temperature": 0.2,
+                "num_predict": 80,
+            },
+        }
+
+        try:
+
+            response = requests.post(
+                self.ollama_url,
+                json=payload,
+                timeout=180,
+            )
+
+            response.raise_for_status()
+
+        except requests.exceptions.ConnectionError:
+
+            raise RuntimeError(
+                "EarthVision AI Assistant is unavailable. "
+                "Please make sure Ollama is running."
+            )
+
+        except requests.exceptions.Timeout:
+
+            raise RuntimeError(
+                "EarthVision AI Assistant timed out."
+            )
+
+        except requests.exceptions.RequestException as exc:
+
+            raise RuntimeError(
+                f"Ollama request failed: {exc}"
+            )
+
+        data = response.json()
+
+        message = data.get(
+            "message",
+            {},
+        )
+
+        answer = message.get(
+            "content",
+            "",
+        ).strip()
+
+        # Remove Qwen reasoning if returned
+        if "</think>" in answer:
+
+            answer = answer.split(
+                "</think>",
+                1,
+            )[1].strip()
+
+        if not answer:
+
+            raise RuntimeError(
+                "Ollama returned an empty response."
+            )
+
+        return {
+            "answer": answer,
+            "model": self.model,
+            "source": "qwen3",
+        }
+
+
+    # =========================================================
+    # COLOR QUESTION DETECTION
+    # =========================================================
+
+    def _is_color_question(
+        self,
+        question: str,
+    ) -> bool:
+
+        q = question.lower()
+
+        color_terms = [
+            "color",
+            "colour",
+            "colors",
+            "colours",
+        ]
+
+        return any(
+            term in q
+            for term in color_terms
+        )
+
+
+    # =========================================================
+    # COLOR ANSWER
+    # =========================================================
+
+    def _answer_color_question(
+        self,
+        object_result: dict | None,
+    ):
+
+        if not object_result:
+            return None
+
+        image_analysis = (
+            object_result.get(
+                "image_analysis"
+            )
+        )
+
+        if not image_analysis:
+            return None
+
+        colors = image_analysis.get(
+            "dominant_colors",
+            [],
+        )
+
+        if not colors:
+
+            return {
+                "answer": (
+                    "I could not determine the "
+                    "dominant colors from the image."
+                ),
+                "model": self.model,
+                "source": "earthvision_image_analysis",
+            }
+
+        names = [
+            item["name"]
+            for item in colors[:5]
+        ]
+
+        if len(names) == 1:
+
+            color_text = names[0]
+
+        elif len(names) == 2:
+
+            color_text = (
+                f"{names[0]} and {names[1]}"
+            )
+
+        else:
+
+            color_text = (
+                ", ".join(names[:-1])
+                + f", and {names[-1]}"
+            )
+
+        brightness = image_analysis.get(
+            "brightness_label"
+        )
+
+        if brightness:
+
+            answer = (
+                f"The dominant colors are "
+                f"{color_text}. "
+                f"The image appears "
+                f"{brightness}."
+            )
+
+        else:
+
+            answer = (
+                f"The dominant colors are "
+                f"{color_text}."
+            )
+
+        return {
+            "answer": answer,
+            "model": self.model,
+            "source": "earthvision_image_analysis",
+        }
+
+    def _is_color_object_question(
+    self,
+    question: str,
+    ) -> bool:
+
+        q = question.lower()
+
+        color_words = [
+            "red",
+            "orange",
+            "yellow",
+            "green",
+            "blue",
+            "cyan",
+            "purple",
+            "white",
+            "gray",
+            "grey",
+            "black",
+        ]
+
+        object_phrases = [
+            "object",
+            "thing",
+            "item",
+            "vehicle",
+            "feature",
+        ]
+
+        has_color = any(
+            word in q
+            for word in color_words
+        )
+
+        has_object = any(
+            phrase in q
+            for phrase in object_phrases
+        )
+
+        return has_color and has_object
+
+    def _answer_color_object_question(
+    self,
+    question: str,
+    object_result: dict | None,
+    ):
+
+        if not object_result:
+            return None
+
+        detections = object_result.get(
+            "detections",
+            [],
+        )
+
+        if not detections:
+            return {
+                "answer": (
+                    "I could not identify an object "
+                    "matching that color."
+                ),
+                "model": self.model,
+                "source": "earthvision_object_detection",
+            }
+
+        question_lower = question.lower()
+
+        colors = [
+            "red",
+            "orange",
+            "yellow",
+            "green",
+            "blue",
+            "cyan",
+            "purple",
+            "white",
+            "gray",
+            "grey",
+            "black",
+        ]
+
+        requested_color = next(
+            (
+                color
+                for color in colors
+                if color in question_lower
+            ),
+            None,
+        )
+
+        if not requested_color:
+            return None
+
+        if requested_color == "grey":
+            requested_color = "gray"
+
+        matches = [
+            detection
+            for detection in detections
+            if detection.get("dominant_color")
+            == requested_color
+        ]
+
+        if not matches:
+            return {
+                "answer": (
+                    f"I could not identify a detected "
+                    f"object that is predominantly "
+                    f"{requested_color}."
+                ),
+                "model": self.model,
+                "source": "earthvision_object_detection",
+            }
+
+        best = max(
+            matches,
+            key=lambda item: item.get(
+                "confidence",
+                0,
+            ),
+        )
+
+        class_name = best.get(
+            "class",
+            "object",
+        )
+
+        confidence = best.get(
+            "confidence",
+            0,
+        )
+
+        return {
+            "answer": (
+                f"The {requested_color} object "
+                f"appears to be a {class_name}, "
+                f"detected with "
+                f"{confidence * 100:.1f}% confidence."
+            ),
+            "model": self.model,
+            "source": "earthvision_object_detection",
+        }
+

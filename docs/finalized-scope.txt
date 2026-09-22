@@ -1,0 +1,91 @@
+🛰️ Satellite Image Analysis
+🔍 Experimental Change Analysis
+🎯 Dynamic Object / Feature Detection
+🤖 EarthVision AI Assistant
+
+
+1. Object detection — YOLO
+
+Use Ultralytics YOLO to learn:
+
+pretrained models
+inference
+bounding boxes
+confidence
+image preprocessing
+model output
+Python integration
+
+For the POC, we'll focus on building/object-like features where the selected remote-sensing model supports them.
+
+2. Change detection — pretrained/reference model
+
+Use a suitable existing change-detection model/pipeline.
+
+We already have OSCD, so we have a credible before/after satellite dataset.
+
+We don't need to spend hours manually optimizing thresholds.
+
+3. Land-cover — lightweight segmentation
+
+Rather than training a huge segmentation network, we'll use a practical pretrained/lightweight approach and demonstrate categories such as:
+
+Urban / Built-up
+Vegetation
+Water
+Bare land
+
+where supported by the selected model/data.
+
+4. AI Assistant
+
+This is where the application becomes more interesting.
+
+The assistant gets structured analysis results, not raw pixels.
+
+For example:
+
+{
+  "area": "Abu Dhabi",
+  "change_percentage": 4.8,
+  "objects_detected": 27,
+  "buildings_detected": 23,
+  "roads_detected": 4,
+  "land_cover": {
+    "urban": 61,
+    "vegetation": 12,
+    "bare_land": 22,
+    "water": 5
+  }
+}
+
+The LLM can then answer:
+
+What changed?
+
+The analysis detected approximately 4.8% changed area, with most detected changes concentrated around the urban region.
+
+This is a much better AI architecture than asking an LLM to directly interpret a giant TIFF.
+
+Technology stack
+
+Let's lock this down.
+
+Layer	Technology	What you learn
+Satellite data	Sentinel-2 / OSCD	Remote sensing basics
+CV	OpenCV	Image processing
+Data	NumPy	Image tensors
+Raster	Rasterio	Geo/satellite imagery
+AI	PyTorch	Model fundamentals
+Detection	Ultralytics YOLO	Object detection
+Segmentation	PyTorch/YOLO segmentation	Pixel classification
+Change detection	Pretrained model	Temporal CV
+Backend	FastAPI	AI APIs
+API schema	Pydantic	Structured AI results
+Frontend	React	AI application UI
+Visualization	React + overlays	Bounding boxes/masks
+LLM	OpenAI API	AI assistant
+Deployment	Local Docker	Packaging
+Git	Later	Version control
+
+

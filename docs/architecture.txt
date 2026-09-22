@@ -1,0 +1,31 @@
+                 ┌───────────────────────────┐
+                 │      React Dashboard      │
+                 │                           │
+                 │ Satellite Analysis        │
+                 │ Object Detection          │
+                 │ AI Assistant              │
+                 └─────────────┬─────────────┘
+                               │ HTTP/REST
+                               ▼
+                 ┌───────────────────────────┐
+                 │       FastAPI Backend     │
+                 │                           │
+                 │ /change-detection        │
+                 │ /object-detection/upload │
+                 │ /assistant                │
+                 └─────────────┬─────────────┘
+                               │
+              ┌────────────────┼────────────────┐
+              │                │                │
+              ▼                ▼                ▼
+      ┌──────────────┐ ┌───────────────┐ ┌───────────────┐
+      │ Change       │ │ Object        │ │ Assistant     │
+      │ Analysis     │ │ Detection     │ │ Service       │
+      │ Service      │ │ Service       │ │               │
+      └──────┬───────┘ └───────┬───────┘ └───────┬───────┘
+             │                  │                  │
+             ▼                  ▼                  ▼
+       OpenCV / CV        YOLO models          Ollama
+       ORB/ECC            YOLO26n-OBB          Qwen3 4B
+       LAB/SSIM           YOLO11n
+       morphology

@@ -1,0 +1,1738 @@
+import { useState } from "react";
+import axios from "axios";
+import {
+  Satellite,
+  Search,
+  ArrowRight,
+  Activity,
+  Bot,
+  ScanSearch,
+} from "lucide-react";
+import "./App.css";
+
+const API_BASE = "http://localhost:9090/api/v1";
+const API_SERVER = "http://localhost:9090";
+
+const beforeImage =
+  `${API_SERVER}/data/raw/india/iccd/sample/ICCD_Sample/Agra/labeled/im1/Agra_0_2022_r00_c01.png`;
+
+const afterImage =
+  `${API_SERVER}/data/raw/india/iccd/sample/ICCD_Sample/Agra/labeled/im2/Agra_0_2023_r00_c01.png`;
+
+
+/* =========================================================
+   MODEL INFORMATION
+   ========================================================= */
+
+const modelInfo = {
+  aerial: {
+    name: "YOLO26n-OBB",
+    description:
+      "Best for satellite and aerial imagery.",
+
+    classes: [
+      "Plane",
+      "Ship",
+      "Storage Tank",
+      "Baseball Diamond",
+      "Tennis Court",
+      "Basketball Court",
+      "Ground Track Field",
+      "Harbor",
+      "Bridge",
+      "Large Vehicle",
+      "Small Vehicle",
+      "Helicopter",
+      "Roundabout",
+      "Soccer Ball Field",
+      "Swimming Pool",
+    ],
+  },
+
+  general: {
+    name: "YOLO11n",
+    description:
+      "Best for general photographs and common objects.",
+
+    classes: [
+      "Person",
+      "Bicycle",
+      "Car",
+      "Motorcycle",
+      "Airplane",
+      "Bus",
+      "Train",
+      "Truck",
+      "Boat",
+      "Animals",
+      "Sports Objects",
+      "Furniture",
+      "Electronics",
+      "Kitchen Objects",
+      "And other COCO classes",
+    ],
+  },
+};
+
+
+/* =========================================================
+   DEMO IMAGES
+   ========================================================= */
+
+const demoImages = {
+  aerial: [
+    {
+      name: "DOTA8 — Aerial Demo 1",
+      path:
+        "/data/demo/aerial/dota8/images/train/P0861__1024__0___1648.jpg",
+    },
+
+    {
+      name: "DOTA8 — Aerial Demo 2",
+      path:
+        "/data/demo/aerial/dota8/images/train/P1053__1024__0___90.jpg",
+    },
+
+    {
+      name: "DOTA8 — Aerial Demo 3",
+      path:
+        "/data/demo/aerial/dota8/images/train/P1142__1024__0___824.jpg",
+    },
+
+    {
+      name: "DOTA8 — Aerial Demo 4",
+      path:
+        "/data/demo/aerial/dota8/images/train/P1161__1024__3296___1648.jpg",
+    },
+
+    {
+      name: "DOTA8 — Aerial Demo 5",
+      path:
+        "/data/demo/aerial/dota8/images/val/P1470__1024__3296___1648.jpg",
+    },
+
+    {
+      name: "DOTA8 — Aerial Demo 6",
+      path:
+        "/data/demo/aerial/dota8/images/val/P1571__1024__2976___0.jpg",
+    },
+
+    {
+      name: "DOTA8 — Aerial Demo 7",
+      path:
+        "/data/demo/aerial/dota8/images/val/P1580__1024__824___824.jpg",
+    },
+
+    {
+      name: "DOTA8 — Aerial Demo 8",
+      path:
+        "/data/demo/aerial/dota8/images/val/P1724__1024__0___824.jpg",
+    },
+  ],
+
+  general: [
+    {
+      name: "COCO8 — General Demo 1",
+      path:
+        "/data/demo/general/coco8/images/train/000000000009.jpg",
+    },
+
+    {
+      name: "COCO8 — General Demo 2",
+      path:
+        "/data/demo/general/coco8/images/train/000000000025.jpg",
+    },
+
+    {
+      name: "COCO8 — General Demo 3",
+      path:
+        "/data/demo/general/coco8/images/train/000000000030.jpg",
+    },
+
+    {
+      name: "COCO8 — General Demo 4",
+      path:
+        "/data/demo/general/coco8/images/train/000000000034.jpg",
+    },
+
+    {
+      name: "COCO8 — General Demo 5",
+      path:
+        "/data/demo/general/coco8/images/val/000000000036.jpg",
+    },
+
+    {
+      name: "COCO8 — General Demo 6",
+      path:
+        "/data/demo/general/coco8/images/val/000000000042.jpg",
+    },
+
+    {
+      name: "COCO8 — General Demo 7",
+      path:
+        "/data/demo/general/coco8/images/val/000000000049.jpg",
+    },
+
+    {
+      name: "COCO8 — General Demo 8",
+      path:
+        "/data/demo/general/coco8/images/val/000000000061.jpg",
+    },
+  ],
+};
+
+
+/* =========================================================
+   APP
+   ========================================================= */
+
+function App() {
+
+  /* -------------------------------------------------------
+     CHANGE DETECTION STATE
+     ------------------------------------------------------- */
+
+  const [result, setResult] = useState(null);
+
+  const [loading, setLoading] = useState(false);
+
+  const [error, setError] = useState("");
+
+
+  /* -------------------------------------------------------
+     OBJECT DETECTION STATE
+     ------------------------------------------------------- */
+
+  const [objectResult, setObjectResult] = useState(null);
+
+  const [objectLoading, setObjectLoading] = useState(false);
+
+  const [objectError, setObjectError] = useState("");
+
+  const [selectedObjectFile, setSelectedObjectFile] =
+    useState(null);
+
+  const [objectPreview, setObjectPreview] =
+    useState("");
+
+  const [objectModel, setObjectModel] =
+    useState("aerial");
+
+
+  /* -------------------------------------------------------
+     AI ASSISTANT STATE
+     ------------------------------------------------------- */
+
+  const [question, setQuestion] = useState("");
+
+  const [assistantAnswer, setAssistantAnswer] =
+    useState("");
+
+  const [assistantLoading, setAssistantLoading] =
+    useState(false);
+
+  const [assistantError, setAssistantError] =
+    useState("");
+
+
+  /* =======================================================
+     CHANGE DETECTION
+     ======================================================= */
+
+  const analyzeChanges = async () => {
+
+    setLoading(true);
+
+    setError("");
+
+    try {
+
+      const response = await axios.post(
+        `${API_BASE}/change-detection`,
+        {
+          before:
+            "/mnt/d/pocs/EarthVisionAI/data/raw/india/iccd/sample/ICCD_Sample/Agra/labeled/im1/Agra_0_2022_r00_c01.png",
+
+          after:
+            "/mnt/d/pocs/EarthVisionAI/data/raw/india/iccd/sample/ICCD_Sample/Agra/labeled/im2/Agra_0_2023_r00_c01.png",
+        }
+      );
+
+      setResult(response.data);
+
+    } catch (err) {
+
+      console.error(err);
+
+      setError(
+        err.response?.data?.detail ||
+        "Unable to connect to EarthVision AI backend."
+      );
+
+    } finally {
+
+      setLoading(false);
+
+    }
+  };
+
+
+  /* =======================================================
+     OBJECT DETECTION
+     ======================================================= */
+
+  const detectObjects = async (
+    file,
+    model = objectModel
+  ) => {
+
+    if (!file) {
+
+      setObjectError(
+        "Please select an image first."
+      );
+
+      return;
+    }
+
+    setObjectLoading(true);
+
+    setObjectError("");
+
+    setObjectResult(null);
+
+    try {
+
+      const formData = new FormData();
+
+      formData.append(
+        "image",
+        file
+      );
+
+      formData.append(
+        "model",
+        model
+      );
+
+
+      console.log(
+        "EarthVision detection:",
+        {
+          file: file.name,
+          model,
+        }
+      );
+
+
+      const response = await axios.post(
+        `${API_BASE}/object-detection/upload`,
+        formData
+      );
+
+
+      console.log(
+        "EarthVision detection result:",
+        response.data
+      );
+
+
+      setObjectResult(
+        response.data
+      );
+
+    } catch (err) {
+
+      console.error(
+        "Object detection error:",
+        err
+      );
+
+
+      setObjectError(
+        err.response?.data?.detail ||
+        "Unable to run object detection."
+      );
+
+    } finally {
+
+      setObjectLoading(false);
+
+    }
+  };
+
+
+  /* =======================================================
+     UPLOAD IMAGE
+     ======================================================= */
+
+  const handleObjectImageChange =
+    async (event) => {
+
+      const file =
+        event.target.files?.[0];
+
+
+      if (!file) {
+        return;
+      }
+
+
+      if (
+        ![
+          "image/jpeg",
+          "image/png",
+        ].includes(file.type)
+      ) {
+
+        setObjectError(
+          "Please select a JPG or PNG image."
+        );
+
+        return;
+      }
+
+
+      if (
+        file.size >
+        15 * 1024 * 1024
+      ) {
+
+        setObjectError(
+          "Image size must be 15 MB or smaller."
+        );
+
+        return;
+      }
+
+
+      setSelectedObjectFile(file);
+
+      setObjectError("");
+
+      setObjectResult(null);
+
+
+      const previewUrl =
+        URL.createObjectURL(file);
+
+
+      setObjectPreview(
+        previewUrl
+      );
+
+
+      /* AUTO DETECTION */
+
+      await detectObjects(
+        file,
+        objectModel
+      );
+    };
+
+
+  /* =======================================================
+     LOAD DEMO IMAGE
+     ======================================================= */
+
+  const loadDemoImage = async (
+  demoPath,
+  demoName,
+  demoModel
+) => {
+
+  try {
+
+    setObjectError("");
+    setObjectResult(null);
+
+    setObjectModel(demoModel);
+
+    setObjectLoading(true);
+
+    const response =
+      await fetch(
+        `${API_SERVER}${demoPath}`
+      );
+
+    if (!response.ok) {
+      throw new Error(
+        "Unable to load demo image."
+      );
+    }
+
+    const blob =
+      await response.blob();
+
+    const extension =
+      blob.type === "image/png"
+        ? ".png"
+        : ".jpg";
+
+    const file =
+      new File(
+        [blob],
+        `${demoName}${extension}`,
+        {
+          type: blob.type,
+        }
+      );
+
+    setSelectedObjectFile(file);
+
+    const previewUrl =
+      URL.createObjectURL(file);
+
+    setObjectPreview(previewUrl);
+
+    await detectObjects(
+      file,
+      demoModel
+    );
+
+  } catch (err) {
+
+    console.error(err);
+
+    setObjectError(
+      "Unable to load the selected demo image."
+    );
+
+  }
+};
+
+  /* =======================================================
+     MODEL CHANGE
+     ======================================================= */
+
+  const handleModelChange =
+    async (event) => {
+
+      const newModel =
+        event.target.value;
+
+
+      setObjectModel(
+        newModel
+      );
+
+      setObjectError("");
+
+      setObjectResult(null);
+
+
+      if (selectedObjectFile) {
+
+        await detectObjects(
+          selectedObjectFile,
+          newModel
+        );
+      }
+    };
+
+
+  /* =======================================================
+     AI ASSISTANT
+     ======================================================= */
+
+  const askAssistant =
+    async () => {
+
+      if (!question.trim()) {
+        return;
+      }
+
+
+      setAssistantLoading(
+        true
+      );
+
+      setAssistantError("");
+
+      setAssistantAnswer("");
+
+
+      const payload = {
+
+        question:
+          question.trim(),
+
+        change_result:
+          result,
+
+        object_result:
+          objectResult,
+      };
+
+
+      console.log(
+        "EarthVision Assistant request:",
+        payload
+      );
+
+
+      try {
+
+        const response =
+          await axios.post(
+            `${API_BASE}/assistant`,
+            payload
+          );
+
+
+        console.log(
+          "EarthVision Assistant response:",
+          response.data
+        );
+
+
+        setAssistantAnswer(
+          response.data.answer ||
+          "No answer returned."
+        );
+
+      } catch (err) {
+
+        console.error(
+          "EarthVision Assistant error:",
+          err
+        );
+
+
+        setAssistantError(
+          err.response?.data?.detail ||
+          "Unable to get a response from EarthVision AI Assistant."
+        );
+
+      } finally {
+
+        setAssistantLoading(
+          false
+        );
+
+      }
+    };
+
+
+  /* =======================================================
+     RENDER
+     ======================================================= */
+
+  return (
+
+    <div className="app">
+
+
+      {/* =================================================
+          HEADER
+          ================================================= */}
+
+      <header className="header">
+
+        <div className="brand">
+
+          <div className="brand-icon">
+
+            <Satellite
+              size={26}
+            />
+
+          </div>
+
+
+          <div>
+
+            <h1>
+              EarthVision AI
+            </h1>
+
+            <p>
+              Satellite Image Intelligence
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div className="status">
+
+          <span
+            className="status-dot"
+          />
+
+          AI Engine Online
+
+        </div>
+
+      </header>
+
+
+      <main className="container">
+
+
+        {/* =================================================
+            HERO
+            ================================================= */}
+
+        <section className="hero">
+
+          <h2>
+            Satellite Image Analysis
+          </h2>
+
+          <p>
+            Analyze satellite imagery,
+            detect changes, and identify
+            meaningful geographic features.
+          </p>
+
+        </section>
+
+
+        {/* =================================================
+            CHANGE DETECTION
+            ================================================= */}
+
+        <section className="analysis-section">
+
+          <div className="section-heading">
+
+            <div>
+
+              <span className="label">
+                AI ANALYSIS
+              </span>
+
+
+              <h2>
+                Before / After Change Detection
+              </h2>
+
+
+              <p>
+                Compare satellite imagery
+                across two time periods.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <section className="comparison">
+
+
+            {/* BEFORE */}
+
+            <div className="image-card">
+
+              <div className="image-header">
+
+                <span className="label">
+                  BEFORE
+                </span>
+
+                <h3>
+                  Agra — 2022
+                </h3>
+
+              </div>
+
+
+              <img
+                src={beforeImage}
+                alt="Agra satellite image 2022"
+              />
+
+            </div>
+
+
+            {/* ARROW */}
+
+            <div className="arrow">
+
+              <ArrowRight
+                size={28}
+              />
+
+            </div>
+
+
+            {/* AFTER */}
+
+            <div className="image-card">
+
+              <div className="image-header">
+
+                <span className="label">
+                  AFTER
+                </span>
+
+                <h3>
+                  Agra — 2023
+                </h3>
+
+              </div>
+
+
+              <img
+                src={afterImage}
+                alt="Agra satellite image 2023"
+              />
+
+            </div>
+
+          </section>
+
+
+          {/* CHANGE BUTTON */}
+
+          <div className="action-area">
+
+            <button
+              className="analyze-button"
+              onClick={analyzeChanges}
+              disabled={loading}
+            >
+
+              <Search
+                size={20}
+              />
+
+
+              {loading
+                ? "Analyzing..."
+                : "Analyze Changes"}
+
+            </button>
+
+          </div>
+
+
+          {error && (
+
+            <div className="error">
+              {error}
+            </div>
+
+          )}
+
+
+          {/* CHANGE STATUS */}
+
+          {loading && (
+
+            <div className="detection-status">
+
+              <Activity
+                size={18}
+              />
+
+              <span>
+                AI is analyzing the
+                satellite imagery...
+              </span>
+
+            </div>
+
+          )}
+
+
+          {result && (
+
+            <section className="results">
+
+
+              <div className="section-title">
+
+                <Activity
+                  size={22}
+                />
+
+                <h2>
+                  Change Analysis Result
+                </h2>
+
+              </div>
+
+
+              <div className="metrics">
+
+
+                <div className="metric">
+
+                  <span>
+                    Image Size
+                  </span>
+
+                  <strong>
+                    {result.width} ×{" "}
+                    {result.height}
+                  </strong>
+
+                </div>
+
+
+                <div className="metric">
+
+                  <span>
+                    Changed Pixels
+                  </span>
+
+                  <strong>
+                    {result.changed_pixels
+                      ?.toLocaleString()}
+                  </strong>
+
+                </div>
+
+
+                <div className="metric">
+
+                  <span>
+                    Change Area
+                  </span>
+
+                  <strong>
+                    {result.change_percentage}%
+                  </strong>
+
+                </div>
+
+
+                <div className="metric">
+
+                  <span>
+                    Method
+                  </span>
+
+                  <strong>
+                    Pixel Difference
+                  </strong>
+
+                </div>
+
+              </div>
+
+
+              {result.change_map && (
+
+                <div className="change-map-section">
+
+
+                  <div className="change-map-header">
+
+                    <div>
+
+                      <span className="label">
+                        DETECTED CHANGES
+                      </span>
+
+
+                      <h3>
+                        Change Map
+                      </h3>
+
+                    </div>
+
+                  </div>
+
+
+                  <div className="change-map-container">
+
+                    <img
+                      src={`${API_SERVER}${result.change_map}`}
+                      alt="Detected change map"
+                    />
+
+                  </div>
+
+
+                  <p className="change-map-description">
+
+                    White areas represent pixels
+                    identified as changed by the
+                    current baseline detector.
+
+                  </p>
+
+                </div>
+
+              )}
+
+
+              <div className="baseline-warning">
+
+                <strong>
+                  Baseline Analysis
+                </strong>
+
+
+                <p>
+
+                  This result uses a simple
+                  pixel-difference baseline.
+                  It demonstrates the EarthVision
+                  pipeline but is not yet the final
+                  semantic AI change-detection model.
+
+                </p>
+
+              </div>
+
+            </section>
+
+          )}
+
+        </section>
+
+
+        {/* =================================================
+            OBJECT DETECTION
+            ================================================= */}
+
+        <section
+          className="analysis-section object-section"
+        >
+
+
+          {/* SECTION HEADER */}
+
+          <div className="section-heading">
+
+            <div>
+
+              <span className="label">
+                AI VISION
+              </span>
+
+
+              <h2>
+                Object / Feature Detection
+              </h2>
+
+
+              <p>
+                Choose an AI model based on
+                the imagery type and objects
+                you want to detect.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          {/* =================================================
+              CONTROLS
+              ================================================= */}
+
+          <div className="upload-panel">
+
+
+            {/* UPLOAD */}
+
+            <div className="upload-controls">
+
+              <label className="upload-label">
+                Upload Image
+              </label>
+
+
+              <input
+                type="file"
+                accept="image/png,image/jpeg"
+                onChange={
+                  handleObjectImageChange
+                }
+              />
+
+            </div>
+
+
+            {/* MODEL */}
+
+            <div className="upload-controls">
+
+              <label className="upload-label">
+                Detection Model
+              </label>
+
+
+              <select
+                value={objectModel}
+                onChange={
+                  handleModelChange
+                }
+              >
+
+                <option value="aerial">
+                  Aerial / Geospatial — YOLO26n-OBB
+                </option>
+
+
+                <option value="general">
+                  General Objects — YOLO11n
+                </option>
+
+              </select>
+
+            </div>
+
+
+            {/* MODEL INFO */}
+
+            <div className="model-info">
+
+
+              <div className="model-info-header">
+
+                <strong>
+                  Supported Objects
+                </strong>
+
+              </div>
+
+
+              <div className="model-description">
+
+                {modelInfo[
+                  objectModel
+                ].description}
+
+              </div>
+
+
+              <div className="class-tags">
+
+                {modelInfo[
+                  objectModel
+                ].classes.map(
+                  (className) => (
+
+                    <span
+                      className="class-tag"
+                      key={className}
+                    >
+                      {className}
+                    </span>
+
+                  )
+                )}
+
+              </div>
+
+
+              {objectModel === "aerial" && (
+
+                <div className="model-note">
+
+                  Building detection is not
+                  included in this model's
+                  trained classes.
+
+                </div>
+
+              )}
+
+            </div>
+
+
+          <div className="upload-controls">
+
+  <label className="upload-label">
+    Demo Image
+  </label>
+
+  <select
+    value=""
+    onChange={async (e) => {
+
+      const selectedPath =
+        e.target.value;
+
+      if (!selectedPath) {
+        return;
+      }
+
+      const selectedDemo =
+        demoImages[objectModel].find(
+          (item) =>
+            item.path === selectedPath
+        );
+
+      if (selectedDemo) {
+
+        await loadDemoImage(
+          selectedDemo.path,
+          selectedDemo.name,
+          objectModel
+        );
+
+      }
+
+    }}
+  >
+
+    <option value="">
+      Select a demo image
+    </option>
+
+
+    {demoImages[objectModel].map(
+      (demo) => (
+
+        <option
+          key={demo.path}
+          value={demo.path}
+        >
+          {demo.name}
+        </option>
+
+      )
+    )}
+
+  </select>
+
+</div>
+
+
+            {/* SELECTED FILE */}
+
+            {selectedObjectFile && (
+
+              <div className="selected-file">
+
+                <span>
+                  Selected:{" "}
+                  {selectedObjectFile.name}
+                </span>
+
+
+                <span>
+
+                  {(
+                    selectedObjectFile.size /
+                    1024 /
+                    1024
+                  ).toFixed(2)} MB
+
+                </span>
+
+              </div>
+
+            )}
+
+          </div>
+
+
+          {/* =================================================
+              IMAGE COMPARISON
+              ================================================= */}
+
+          <div className="object-comparison">
+
+
+            {/* INPUT */}
+
+            <div className="image-card">
+
+              <div className="image-header">
+
+                <span className="label">
+                  INPUT IMAGE
+                </span>
+
+
+                <h3>
+                  Uploaded Image
+                </h3>
+
+              </div>
+
+
+              {objectPreview ? (
+
+                <img
+                  src={objectPreview}
+                  alt="Uploaded image preview"
+                />
+
+              ) : (
+
+                <div
+                  className="detection-placeholder"
+                >
+
+                  <ScanSearch
+                    size={40}
+                  />
+
+
+                  <span>
+
+                    Select a JPG or PNG
+                    image to begin
+                    detection.
+
+                  </span>
+
+                </div>
+
+              )}
+
+            </div>
+
+
+            {/* AI DETECTION */}
+
+            <div className="image-card">
+
+              <div className="image-header">
+
+                <span className="label">
+                  AI DETECTION
+                </span>
+
+
+                <h3>
+
+                  {objectResult
+                    ? objectResult.model
+                    : "Detection Result"}
+
+                </h3>
+
+              </div>
+
+
+              {objectLoading ? (
+
+                <div
+                  className="detection-placeholder"
+                >
+
+                  <ScanSearch
+                    size={40}
+                  />
+
+
+                  <span>
+                    AI is analyzing
+                    the image...
+                  </span>
+
+                </div>
+
+              ) : objectResult ? (
+
+                <img
+                  src={`${API_SERVER}${objectResult.annotated_image}`}
+                  alt="AI object detection result"
+                />
+
+              ) : (
+
+                <div
+                  className="detection-placeholder"
+                >
+
+                  <ScanSearch
+                    size={40}
+                  />
+
+
+                  <span>
+
+                    AI detection result
+                    will appear here.
+
+                  </span>
+
+                </div>
+
+              )}
+
+            </div>
+
+          </div>
+
+
+          {/* =================================================
+              STATUS
+              ================================================= */}
+
+          {objectLoading && (
+
+            <div className="detection-status">
+
+              <ScanSearch
+                size={18}
+              />
+
+              <span>
+                AI is analyzing the image...
+              </span>
+
+            </div>
+
+          )}
+
+
+          {objectResult &&
+            !objectLoading && (
+
+              <div
+                className="detection-status success"
+              >
+
+                <ScanSearch
+                  size={18}
+                />
+
+                <span>
+                  AI analysis completed using{" "}
+                  {objectResult.model}
+                </span>
+
+              </div>
+
+            )}
+
+
+          {/* ERROR */}
+
+          {objectError && (
+
+            <div className="error">
+              {objectError}
+            </div>
+
+          )}
+
+
+          {/* =================================================
+              RESULTS
+              ================================================= */}
+
+          {objectResult && (
+
+            <div className="object-results">
+
+
+              <div className="section-title">
+
+                <ScanSearch
+                  size={22}
+                />
+
+                <h2>
+                  Detection Results
+                </h2>
+
+              </div>
+
+
+              <div className="metrics">
+
+
+                {/* TOTAL */}
+
+                <div className="metric">
+
+                  <span>
+                    Total Detections
+                  </span>
+
+
+                  <strong>
+                    {objectResult.total_detections}
+                  </strong>
+
+                </div>
+
+
+                {/* MODEL */}
+
+                <div className="metric">
+
+                  <span>
+                    Model
+                  </span>
+
+
+                  <strong>
+                    {objectResult.model}
+                  </strong>
+
+                </div>
+
+
+                {/* CLASSES */}
+
+                <div className="metric">
+
+                  <span>
+                    Detected Classes
+                  </span>
+
+
+                  <strong>
+                    {Object.keys(
+                      objectResult.counts || {}
+                    ).length}
+                  </strong>
+
+                </div>
+
+
+                {/* IMAGE SIZE */}
+
+                <div className="metric">
+
+                  <span>
+                    Image Size
+                  </span>
+
+
+                  <strong>
+                    {objectResult.width} ×{" "}
+                    {objectResult.height}
+                  </strong>
+
+                </div>
+
+              </div>
+
+
+              {/* DETECTION LIST */}
+
+              <div className="detection-list">
+
+
+          <h3>
+            {objectModel === "aerial"
+              ? "Detected Geographic Features"
+              : "Detected Objects"}
+          </h3>
+
+
+                {objectResult.detections?.length >
+                0 ? (
+
+                  objectResult.detections.map(
+                    (
+                      detection,
+                      index
+                    ) => (
+
+                      <div
+                        className="detection-item"
+                        key={index}
+                      >
+
+
+                        <div>
+
+                          <strong>
+                            {detection.class}
+                          </strong>
+
+
+                          <span>
+                            Confidence
+                          </span>
+
+                        </div>
+
+
+                        <strong>
+
+                          {(
+                            detection.confidence *
+                            100
+                          ).toFixed(1)}%
+
+                        </strong>
+
+                      </div>
+
+                    )
+                  )
+
+                ) : (
+
+                  <div
+                    className="detection-placeholder"
+                  >
+
+                    <span>
+
+                      {objectModel ===
+                      "aerial"
+
+                        ? "No supported geographic features were detected."
+
+                        : "No supported objects were detected."}
+
+                    </span>
+
+                  </div>
+
+                )}
+
+              </div>
+
+
+              {/* MODEL CAPABILITY */}
+
+              <div className="baseline-warning">
+
+                <strong>
+                  Model Capability
+                </strong>
+
+
+                <p>
+
+                  {objectModel === "aerial"
+
+                    ? "YOLO26n-OBB is designed for supported aerial and geospatial feature classes. Building detection is not included in this model."
+
+                    : "YOLO11n is designed for general object detection using the COCO object categories. Results depend on image quality and model coverage."}
+
+                </p>
+
+              </div>
+
+            </div>
+
+          )}
+
+        </section>
+
+
+        {/* =================================================
+            AI ASSISTANT
+            ================================================= */}
+
+        <section className="assistant">
+
+
+          <div className="section-title">
+
+            <Bot
+              size={22}
+            />
+
+
+            <h2>
+              EarthVision AI Assistant
+            </h2>
+
+          </div>
+
+
+          <p>
+
+            Ask questions about the satellite
+            imagery and AI analysis results.
+
+          </p>
+
+
+          <div className="assistant-input">
+
+
+            <input
+              type="text"
+              value={question}
+              onChange={(e) =>
+                setQuestion(
+                  e.target.value
+                )
+              }
+              onKeyDown={(e) => {
+
+                if (
+                  e.key === "Enter"
+                ) {
+
+                  askAssistant();
+
+                }
+
+              }}
+              placeholder="Ask: What did EarthVision detect?"
+            />
+
+
+            <button
+              onClick={
+                askAssistant
+              }
+              disabled={
+                assistantLoading
+              }
+            >
+
+              {assistantLoading
+                ? "Thinking..."
+                : "Ask AI"}
+
+            </button>
+
+          </div>
+
+
+          {assistantError && (
+
+            <div className="error">
+
+              {assistantError}
+
+            </div>
+
+          )}
+
+
+          {assistantAnswer && (
+
+            <div className="assistant-answer">
+
+
+              <div
+                className="assistant-answer-header"
+              >
+
+                <Bot
+                  size={18}
+                />
+
+
+                <strong>
+                  EarthVision AI
+                </strong>
+
+              </div>
+
+
+              <p>
+                {assistantAnswer}
+              </p>
+
+            </div>
+
+          )}
+
+        </section>
+
+      </main>
+
+    </div>
+  );
+}
+
+
+export default App;

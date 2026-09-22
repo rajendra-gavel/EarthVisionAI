@@ -1,0 +1,106 @@
+
+EarthVision AI is a satellite-image intelligence POC that analyzes before-and-after satellite imagery, identifies potential visual differences, detects supported geographic objects, and provides a natural-language AI assistant to explain the results.
+
+The platform has a React-based dashboard, a FastAPI inference backend, computer-vision models for object detection, an experimental structural/spectral change-analysis pipeline, and a locally hosted Qwen3 model for the AI assistant.
+
+One important design decision was to separate confirmed AI detection from experimental visual analysis. Our change-analysis approach is currently experimental, so we don't claim that every highlighted region represents real-world geographic change.
+
+
+Problem Statement:
+----------------
+Satellite imagery contains a huge amount of information, but manually comparing images from different dates is time-consuming.
+
+We wanted to build an AI-assisted platform that can answer questions such as:
+
+What changed between two satellite images?
+Where are potential differences?
+What objects/features can be detected?
+What does the analysis mean?
+Can a user interact with the analysis using natural language?
+
+So the goal is:
+
+Convert raw satellite imagery into visual insights and natural-language explanations.
+
+-----------------------------------
+
+Business Problem -
+----------------
+Potential applications include:
+        urban development monitoring
+        infrastructure monitoring
+        road/bridge/airport analysis
+        disaster assessment
+        construction monitoring
+        land-use monitoring
+        agricultural monitoring
+        environmental monitoring
+        defense/security applications
+
+But POC scope limited to:
+        satellite image comparison
+        potential change analysis (experimental)
+        object/feature detection
+        AI-assisted explanation
+-----------------------------------------------------
+Functional Requirements:
+-----------------------
+R1	Before/after satellite image analysis
+R2	Potential visual-difference detection
+R3	Object/feature detection
+R4	Natural-language AI assistant
+------
+Additional UI requirements
+upload imagery
+automatic inference
+model selection
+visualization
+result metrics
+candidate regions
+AI explanations
+error handling
+------
+Non-functional Requirements:
+---------------------------
+Performance- Inference should be reasonably fast for a POC.
+Scalability- Backend should be stateless so inference workers can eventually be scaled horizontally.
+Security - No API secrets should be embedded in source code.
+Maintainability - Separate modulerization for each components Frontend, Backend/API, AI services, Data/results
+Extensibility - Models should be replaceable without redesigning the entire UI.
+--------------------------------------------------------------------------------------
+
+----------------------------------------
+AI Models:
+-----------------------------------------
+Model 1 — YOLO26n-OBB
+Used for: Aerial/geospatial object detection
+It detects supported classes such as: planes,ships,storage tanks,bridges,roundabouts,swimming pools,vehicles,etc.
+But does not have building class
+--
+Model 2 — YOLO11n
+Used for: General object detection
+It will detection : person,bus,car,truck,bicycle, etc
+--
+Model 3 — Qwen3 4B
+Used for: Natural-language EarthVision Assistant
+It is running locally through Ollama.
+
+
+-------------------------
+“An AI-powered Earth-observation POC that combines satellite-image analysis, experimental change analysis, computer-vision object detection, and a natural-language AI assistant, with a roadmap toward fine-tuned geospatial foundation models and GPU-accelerated production inference.
+-------------------------
+
+
+What Next:
+
+| Capability       | Current POC           | Next level                                            |
+| ---------------- | --------------------- | ----------------------------------------------------- |
+| Object detection | YOLO26n-OBB / YOLO11n | larger/fine-tuned YOLO                                |
+| Segmentation     | —                     | SAM2 / dedicated building model                       |
+| Change detection | V3 experimental CV    | ChangeFormer / DCFF / newer Siamese/Transformer model |
+| EO foundation    | —                     | Prithvi-EO-2.0                                        |
+| Assistant        | Qwen3 4B              | larger local model / managed LLM                      |
+| Knowledge        | structured context    | RAG + vector DB                                       |
+| Maps             | image dashboard       | GIS + PostGIS                                         |
+| Compute          | CPU                   | NVIDIA GPU                                            |
+| Infrastructure   | local FastAPI         | GPU workers + queue + storage + observability         |
